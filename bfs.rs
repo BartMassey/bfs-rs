@@ -4,30 +4,27 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use clap::Parser;
 use csv::{Reader, ReaderBuilder};
-use anyhow::anyhow;
 
 type Edge = Result<(u32, u32), anyhow::Error>;
 
 /// Read the graph.  Return the edges as tuples. Return
 /// errors lazily.
 fn read_edges(csv: Reader<File>) -> impl Iterator<Item = Edge> {
-    csv
-        .into_records()
-        .map(|r| {
-            let r = r?;
-            let nr = r.len();
-            if nr != 2 {
-                return Err(anyhow!("record length {}", nr));
-            }
-            Ok::<(u32, u32), anyhow::Error>((
-                r.get(0).ok_or(anyhow!("get 0"))?.parse()?,
-                r.get(1).ok_or(anyhow!("get 1"))?.parse()?,
-            ))
-        })
+    csv.into_records().map(|r| {
+        let r = r?;
+        let nr = r.len();
+        if nr != 2 {
+            return Err(anyhow!("record length {}", nr));
+        }
+        Ok::<(u32, u32), anyhow::Error>((
+            r.get(0).ok_or(anyhow!("get 0"))?.parse()?,
+            r.get(1).ok_or(anyhow!("get 1"))?.parse()?,
+        ))
+    })
 }
-
 
 type Graph = HashMap<u32, HashSet<u32>>;
 
@@ -45,13 +42,7 @@ fn build_graph(edges: impl Iterator<Item = Edge>) -> Result<Graph, anyhow::Error
 
 #[test]
 fn test_build_graph() {
-    let edges = [
-        Ok((0, 1)),
-        Ok((1, 0)),
-        Ok((0, 2)),
-        Ok((1, 3)),
-        Ok((2, 4)),
-    ];
+    let edges = [Ok((0, 1)), Ok((1, 0)), Ok((0, 2)), Ok((1, 3)), Ok((2, 4))];
     let graph = build_graph(edges.into_iter()).unwrap();
     assert!(graph[&0].contains(&1));
     assert!(graph[&0].contains(&2));
@@ -138,4 +129,4 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     Ok(())
-}    
+}
