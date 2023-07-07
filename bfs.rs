@@ -1,13 +1,22 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::path::PathBuf;
 
+use clap::Parser;
 use csv::Reader;
 use anyhow::anyhow;
 
+#[derive(Parser)]
+struct Args {
+    path: PathBuf,
+    init: u32,
+    goal: u32,
+}
+
 fn main() -> Result<(), anyhow::Error> {
-    // Get the pathname as an argument. Allow non-UTF8 pathnames.
-    let path: std::ffi::OsString = std::env::args_os().nth(1).unwrap();
+    // Get arguments. Allow non-UTF8 pathnames.
+    let args = Args::parse();
     // Open the CSV reader on the file.
-    let mut csv = Reader::from_path(&path)?;
+    let mut csv = Reader::from_path(&args.path)?;
 
     // Read the graph from the file.  Iterate over the edges
     // as tuples.
@@ -29,7 +38,34 @@ fn main() -> Result<(), anyhow::Error> {
         graph.entry(end).or_default().insert(start);
     }
 
-    println!("{:?}", graph);
+    // BFS
+    let mut q = VecDeque::from([args.init]);
+    // Keep the parent of each node along the shortest path.
+    // If the node is encountered later, it must not be
+    // along a shortest path.
+    let mut parents = HashMap::from([(args.init, None)]);
+    while let Some(mut node) = q.pop_front() {
+        if node == args.goal {
+            println!("path found");
+            let mut path = vec![node];
+            while let Some(parent) = parents[&node] {
+                path.push(parent);
+                node = parent;
+            }
+            for p in path.iter().rev() {
+                println!("{}", p);
+            }
+            return Ok(());
+        }
+        for &child in graph.get(&node).ok_or(anyhow!("no node {}", node))?.iter() {
+            if parents.contains_key(&child) {
+                continue;
+            }
+            parents.insert(child, Some(node));
+            q.push_back(child);
+        }
+    }
 
+    println!("no path found");
     Ok(())
 }    
