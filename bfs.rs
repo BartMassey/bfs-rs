@@ -1,9 +1,25 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fs::File;
 use std::path::PathBuf;
 
 use clap::Parser;
 use csv::Reader;
 use anyhow::anyhow;
+
+type Edge = Result<(u32, u32), anyhow::Error>;
+fn read_graph(csv: Reader<File>) -> impl Iterator<Item = Edge> {
+    // Read the graph.  Iterate over the edges
+    // as tuples.
+    csv
+        .into_records()
+        .map(|r| {
+            let r = r?;
+            Ok::<(u32, u32), anyhow::Error>((
+                r.get(0).ok_or(anyhow!("get 0"))?.parse()?,
+                r.get(1).ok_or(anyhow!("get 1"))?.parse()?,
+            ))
+        })
+}
 
 #[derive(Parser)]
 struct Args {
@@ -15,20 +31,11 @@ struct Args {
 fn main() -> Result<(), anyhow::Error> {
     // Get arguments. Allow non-UTF8 pathnames.
     let args = Args::parse();
-    // Open the CSV reader on the file.
-    let mut csv = Reader::from_path(&args.path)?;
 
-    // Read the graph from the file.  Iterate over the edges
-    // as tuples.
-    let edges = csv
-        .records()
-        .map(|r| {
-            let r = r?;
-            Ok::<(u32, u32), anyhow::Error>((
-                r.get(0).ok_or(anyhow!("get 0"))?.parse()?,
-                r.get(1).ok_or(anyhow!("get 1"))?.parse()?,
-            ))
-        });
+    // Read the graph.
+    let csv = Reader::from_path(args.path)?;
+    let edges = read_graph(csv);
+
     // Build the adjacency map. Ensure bidirectionality.
     let mut graph: HashMap<u32, HashSet<u32>> = HashMap::new();
     for edge in edges {
