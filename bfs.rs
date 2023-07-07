@@ -1,3 +1,5 @@
+// Breadth-First Search demo.
+
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::path::PathBuf;
@@ -15,6 +17,10 @@ fn read_edges(csv: Reader<File>) -> impl Iterator<Item = Edge> {
         .into_records()
         .map(|r| {
             let r = r?;
+            let nr = r.len();
+            if nr != 2 {
+                return Err(anyhow!("record length {}", nr));
+            }
             Ok::<(u32, u32), anyhow::Error>((
                 r.get(0).ok_or(anyhow!("get 0"))?.parse()?,
                 r.get(1).ok_or(anyhow!("get 1"))?.parse()?,
@@ -37,6 +43,23 @@ fn build_graph(edges: impl Iterator<Item = Edge>) -> Result<Graph, anyhow::Error
     Ok(graph)
 }
 
+#[test]
+fn test_build_graph() {
+    let edges = [
+        Ok((0, 1)),
+        Ok((1, 0)),
+        Ok((0, 2)),
+        Ok((1, 3)),
+        Ok((2, 4)),
+    ];
+    let graph = build_graph(edges.into_iter()).unwrap();
+    assert!(graph[&0].contains(&1));
+    assert!(graph[&0].contains(&2));
+    assert!(graph[&1].contains(&0));
+    assert!(graph[&4].contains(&2));
+    assert!(!graph[&4].contains(&1));
+}
+
 /// Breadth-First Search the graph.
 fn bfs(graph: &Graph, init: u32, goal: u32) -> Result<Option<Vec<u32>>, anyhow::Error> {
     let mut q = VecDeque::from([init]);
@@ -46,7 +69,6 @@ fn bfs(graph: &Graph, init: u32, goal: u32) -> Result<Option<Vec<u32>>, anyhow::
     let mut parents = HashMap::from([(init, None)]);
     while let Some(mut node) = q.pop_front() {
         if node == goal {
-            println!("path found");
             let mut path = vec![node];
             while let Some(parent) = parents[&node] {
                 path.push(parent);
@@ -66,6 +88,22 @@ fn bfs(graph: &Graph, init: u32, goal: u32) -> Result<Option<Vec<u32>>, anyhow::
     Ok(None)
 }
 
+#[test]
+fn test_bfs() {
+    let edges = [
+        (0u32, 1u32),
+        (1, 2),
+        (1, 3),
+        (2, 4),
+        (4, 5),
+        (3, 5),
+        (3, 6),
+        (5, 7),
+    ];
+    let graph = build_graph(edges.into_iter().map(anyhow::Ok)).unwrap();
+    let path = bfs(&graph, 0, 7).unwrap().unwrap();
+    assert_eq!(&path, &[0u32, 1, 3, 5, 7]);
+}
 
 #[derive(Parser)]
 struct Args {
@@ -87,6 +125,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     // Show the solution.
     if let Some(path) = bfs(&graph, args.init, args.goal)? {
+        println!("path found");
         for p in path.iter() {
             println!("{}", p);
         }
