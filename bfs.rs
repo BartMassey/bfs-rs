@@ -5,7 +5,7 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use clap::Parser;
-use csv::Reader;
+use csv::{Reader, ReaderBuilder};
 use anyhow::anyhow;
 
 type Edge = Result<(u32, u32), anyhow::Error>;
@@ -107,6 +107,8 @@ fn test_bfs() {
 
 #[derive(Parser)]
 struct Args {
+    #[arg(long)]
+    headers: bool,
     path: PathBuf,
     init: u32,
     goal: u32,
@@ -117,7 +119,9 @@ fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
 
     // Read the edges.
-    let csv = Reader::from_path(args.path)?;
+    let csv = ReaderBuilder::new()
+        .has_headers(args.headers)
+        .from_path(args.path)?;
     let edges = read_edges(csv);
 
     // Build the graph.
