@@ -1,4 +1,4 @@
-// Breadth-First Search demo.
+//! Breadth-First Search demo.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
