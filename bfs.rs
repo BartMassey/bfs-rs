@@ -1,7 +1,7 @@
 //! Breadth-First Search demo.
 
-use std::collections::{HashMap, HashSet, VecDeque};
 use std::collections::hash_map::Entry::*;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -69,7 +69,9 @@ fn bfs(graph: &Graph, init: u32, goal: u32) -> Result<Option<Vec<u32>>, anyhow::
             path.reverse();
             return Ok(Some(path));
         }
-        let children = graph.get(&node).ok_or_else(|| anyhow!("no node {}", node))?;
+        let children = graph
+            .get(&node)
+            .ok_or_else(|| anyhow!("no node {}", node))?;
         for &child in children {
             match parents.entry(child) {
                 Occupied(_) => {
